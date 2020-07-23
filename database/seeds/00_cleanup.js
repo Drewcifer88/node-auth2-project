@@ -1,13 +1,21 @@
+const cleaner = require("knex-cleaner");
 
-exports.seed = function(knex) {
+function cleanTables(knex) {
+  return cleaner
+    .clean(knex, {
+      mode: "truncate",
+      restartIdentity: true,
+      ignoreTables: ["knex_migrations", "knex_migrations_lock"],
+    })
+    .then(() => console.log("\n== All tables truncated, ready to seed ==\n"));
+}
+
+exports.seed = function (knex) {
   // Deletes ALL existing entries
-  return knex('table_name').del()
-    .then(function () {
-      // Inserts seed entries
-      return knex('table_name').insert([
-        {id: 1, colName: 'rowValue1'},
-        {id: 2, colName: 'rowValue2'},
-        {id: 3, colName: 'rowValue3'}
-      ]);
-    });
+  if (knex.client.config.client === "sqlite3") {
+    // Inserts seed entries
+    return knex.raw("PRAGMA foreign_keys = OFF;").then(() => cleanTables(knex));
+  } else {
+    return cleanTables(knex);
+  }
 };
